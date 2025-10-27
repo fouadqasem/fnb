@@ -65,8 +65,10 @@ export function getDay$(
 
   const unsubItems = onSnapshot(itemsRef, (snapshot) => {
     items = snapshot.docs.map((doc) => {
+
       const data = doc.data() as LineItem;
       return { ...data, id: doc.id };
+
     });
     emit();
   });
@@ -248,8 +250,10 @@ export async function recomputeAndSaveSummary(
   if (!workingItems) {
     const snapshot = await getDocs(lineItemsColRef(restaurantId, date));
     workingItems = snapshot.docs.map((doc) => {
+
       const data = doc.data() as LineItem;
       return { ...data, id: doc.id };
+
     });
   }
   const summary = calcSummary(workingItems ?? []);
