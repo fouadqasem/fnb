@@ -1,3 +1,5 @@
 {
-  "outputDirectory": ".next"
+
+  "framework": "nextjs"
+
 }
