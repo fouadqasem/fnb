@@ -36,7 +36,7 @@ export function DayList({ days, activeDate, onSelect }: DayListProps) {
                 </div>
                 <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <span>Total Sales: {formatCurrency(day.summary.totalSalesJD)}</span>
-                  <span>Par Cst: {formatCurrency(day.summary.parCstJD)}</span>
+                  <span>Cost Variance: {formatCurrency(day.summary.parCstJD)}</span>
                 </div>
               </button>
             ))

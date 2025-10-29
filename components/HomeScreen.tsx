@@ -6,6 +6,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { Toolbar } from '@/components/Toolbar';
 import { LineItemsGrid } from '@/components/LineItemsGrid';
 import { DayList } from '@/components/DayList';
+import { LineItemForm, type LineItemDraft } from '@/components/LineItemForm';
 import { useAuthUser } from '@/lib/auth';
 import { useTheme } from 'next-themes';
 import {
@@ -35,8 +36,6 @@ const STORAGE_KEYS = {
   date: 'fnb_selectedDate'
 } as const;
 
-const numericEditableFields = new Set<keyof LineItemInput>(['qtyNos', 'unitCostJD', 'unitPriceJD', 'totalSalesJD']);
-
 function toLineItemInput(item: LineItem): LineItemInput {
   return {
     id: item.id,
@@ -45,7 +44,52 @@ function toLineItemInput(item: LineItem): LineItemInput {
     qtyNos: item.qtyNos,
     unitCostJD: item.unitCostJD,
     unitPriceJD: item.unitPriceJD,
+    costOnPosJD: item.costOnPosJD,
     totalSalesJD: item.totalSalesJD
+  };
+}
+
+function toDraft(item: LineItem): LineItemDraft {
+  return {
+    id: item.id,
+    category: item.category,
+    menuItem: item.menuItem,
+    qtyNos: item.qtyNos !== undefined ? String(item.qtyNos) : '',
+    unitCostJD: item.unitCostJD !== undefined ? String(item.unitCostJD) : '',
+    unitPriceJD: item.unitPriceJD !== undefined ? String(item.unitPriceJD) : '',
+    costOnPosJD: item.costOnPosJD !== undefined ? String(item.costOnPosJD) : '',
+    totalSalesJD: item.totalSalesJD !== undefined ? String(item.totalSalesJD) : ''
+  };
+}
+
+function createEmptyDraft(): LineItemDraft {
+  return {
+    id: crypto.randomUUID(),
+    category: '',
+    menuItem: '',
+    qtyNos: '',
+    unitCostJD: '',
+    unitPriceJD: '',
+    costOnPosJD: '',
+    totalSalesJD: ''
+  };
+}
+
+function parseNumeric(value: string) {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? Number(parsed.toFixed(3)) : 0;
+}
+
+function draftToInput(draft: LineItemDraft): LineItemInput {
+  return {
+    id: draft.id || crypto.randomUUID(),
+    category: draft.category.trim(),
+    menuItem: draft.menuItem.trim(),
+    qtyNos: parseNumeric(draft.qtyNos),
+    unitCostJD: parseNumeric(draft.unitCostJD),
+    unitPriceJD: parseNumeric(draft.unitPriceJD),
+    costOnPosJD: parseNumeric(draft.costOnPosJD),
+    totalSalesJD: parseNumeric(draft.totalSalesJD)
   };
 }
 
@@ -65,6 +109,8 @@ export default function HomeScreen() {
   const [settings, setSettings] = useState<DaySettings>({ ...DEFAULT_SETTINGS });
   const [recentDays, setRecentDays] = useState<{ date: string; summary: DailySummary }[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<LineItemDraft>(() => createEmptyDraft());
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [loadingDay, setLoadingDay] = useState(false);
 
   useEffect(() => {
@@ -113,6 +159,8 @@ export default function HomeScreen() {
       setSettings(settings);
       setLoadingDay(false);
       setSelectedItemId(null);
+      setEditingItemId(null);
+      setDraft(createEmptyDraft());
     });
 
     return () => unsubscribe();
@@ -129,99 +177,70 @@ export default function HomeScreen() {
     return () => unsubscribe();
   }, [currentRestaurantId]);
 
-  const handleDraftChange = useCallback(
-    (id: string, field: keyof LineItem, value: string) => {
-      setItems((prev) => {
-        const next = prev.map((item) => {
-          if (item.id !== id) return item;
-          const input: LineItemInput = {
-            ...toLineItemInput(item)
-          };
-          if (numericEditableFields.has(field as keyof LineItemInput)) {
-            const parsed = parseFloat(value);
-            if (field === 'qtyNos' || field === 'unitCostJD' || field === 'unitPriceJD' || field === 'totalSalesJD') {
-              input[field] = Number.isFinite(parsed) ? parsed : 0;
-            }
-          } else if (field === 'category' || field === 'menuItem') {
-            input[field] = value;
-          }
-          return calcDerivedForItem(input, settings);
-        });
-        setSummary(calcSummary(next));
-        return next;
-      });
+  const draftInput = useMemo(() => draftToInput(draft), [draft]);
+  const draftDerived = useMemo(() => calcDerivedForItem(draftInput, settings), [draftInput, settings]);
+
+  const handleDraftTextChange = useCallback((field: 'category' | 'menuItem', value: string) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleDraftNumberChange = useCallback(
+    (
+      field: Exclude<keyof LineItemDraft, 'category' | 'menuItem' | 'id'>,
+      value: string
+    ) => {
+      setDraft((prev) => ({ ...prev, [field]: value }));
     },
-    [settings]
+    []
   );
 
-  const commitUpdate = useCallback(
-    async (id: string, overrides: Partial<LineItemInput>) => {
-      if (!currentRestaurantId) return;
-      const current = items.find((item) => item.id === id);
-      if (!current) return;
-      const payload: LineItemInput = {
-        ...toLineItemInput(current),
-        ...overrides
-      };
-      await upsertItem(currentRestaurantId, selectedDate, payload, settings, items);
-    },
-    [currentRestaurantId, items, selectedDate, settings]
-  );
-
-  const handleCommitString = useCallback(
-    (id: string, field: keyof LineItem, value: string) => {
-      void commitUpdate(id, { [field]: value } as Partial<LineItemInput>);
-    },
-    [commitUpdate]
-  );
-
-  const handleCommitNumber = useCallback(
-    (id: string, field: keyof LineItem, value: number) => {
-      void commitUpdate(id, { [field]: value } as Partial<LineItemInput>);
-    },
-    [commitUpdate]
-  );
-
-  const handleAddRow = async () => {
+  const handleSubmitDraft = useCallback(async () => {
     if (!currentRestaurantId) return;
-    const newId = crypto.randomUUID();
-    const base: LineItemInput = {
-      id: newId,
-      category: '',
-      menuItem: '',
-      qtyNos: 0,
-      unitCostJD: 0,
-      unitPriceJD: 0,
-      totalSalesJD: 0
-    };
-    const derived = calcDerivedForItem(base, settings);
-    setItems((prev) => {
-      const next = [...prev, derived];
-      setSummary(calcSummary(next));
-      return next;
-    });
-    setSelectedItemId(newId);
-    await upsertItem(currentRestaurantId, selectedDate, base, settings, items);
+    const base = draftToInput(draft);
+    const id = editingItemId ?? base.id ?? crypto.randomUUID();
+    const payload: LineItemInput = { ...base, id };
+    const derived = calcDerivedForItem(payload, settings);
+    const nextItems = items.filter((item) => item.id !== id).concat(derived);
+    setItems(nextItems);
+    setSummary(calcSummary(nextItems));
+    setSelectedItemId(id);
+    await upsertItem(currentRestaurantId, selectedDate, payload, settings, items);
+    setEditingItemId(null);
+    setDraft(createEmptyDraft());
+  }, [currentRestaurantId, draft, editingItemId, items, selectedDate, settings]);
+
+  const handleAddRow = () => {
+    if (!currentRestaurantId) return;
+    setEditingItemId(null);
+    setDraft(createEmptyDraft());
+    setSelectedItemId(null);
   };
 
-  const handleDuplicateRow = async () => {
-    if (!currentRestaurantId || !selectedItemId) return;
+  const handleDuplicateRow = () => {
+    if (!selectedItemId) return;
     const target = items.find((item) => item.id === selectedItemId);
     if (!target) return;
-    const newId = crypto.randomUUID();
-    const base: LineItemInput = {
-      ...toLineItemInput(target),
-      id: newId
-    };
-    const derived = calcDerivedForItem(base, settings);
-    setItems((prev) => {
-      const next = [...prev, derived];
-      setSummary(calcSummary(next));
-      return next;
-    });
-    setSelectedItemId(newId);
-    await upsertItem(currentRestaurantId, selectedDate, base, settings, items);
+    const duplicateDraft = { ...toDraft(target), id: crypto.randomUUID() };
+    setDraft(duplicateDraft);
+    setEditingItemId(null);
+    setSelectedItemId(null);
   };
+
+  const handleEditRow = useCallback(
+    (id: string) => {
+      const target = items.find((item) => item.id === id);
+      if (!target) return;
+      setDraft(toDraft(target));
+      setEditingItemId(id);
+      setSelectedItemId(id);
+    },
+    [items]
+  );
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingItemId(null);
+    setDraft(createEmptyDraft());
+  }, []);
 
   const handleDeleteRow = async () => {
     if (!currentRestaurantId || !selectedItemId) return;
@@ -231,6 +250,10 @@ export default function HomeScreen() {
       return next;
     });
     await deleteItem(currentRestaurantId, selectedDate, selectedItemId, items);
+    if (editingItemId === selectedItemId) {
+      setEditingItemId(null);
+      setDraft(createEmptyDraft());
+    }
     setSelectedItemId(null);
   };
 
@@ -240,6 +263,8 @@ export default function HomeScreen() {
     setItems([]);
     setSummary({ ...DEFAULT_SUMMARY });
     setSelectedItemId(null);
+    setEditingItemId(null);
+    setDraft(createEmptyDraft());
   };
 
   const handleImport = async (newItems: LineItem[]) => {
@@ -248,6 +273,9 @@ export default function HomeScreen() {
     setItems(combined);
     setSummary(calcSummary(combined));
     await importItems(currentRestaurantId, selectedDate, newItems, settings, items);
+    setEditingItemId(null);
+    setDraft(createEmptyDraft());
+    setSelectedItemId(null);
   };
 
   const handleExport = () => {
@@ -274,10 +302,14 @@ export default function HomeScreen() {
   const metrics = useMemo(
     () => [
       {
-        title: 'Daily Food Cost %',
+        title: 'Day Food Cost %',
         value: formatPercent(summary.foodCostPct, 1),
-        hint: 'Total Cost ÷ Total Sales × 100',
+        hint: 'Cost on POS ÷ Total Sales × 100',
         emphasize: true
+      },
+      {
+        title: 'Recipe Food Cost %',
+        value: formatPercent(summary.recipeFoodCostPct, 1)
       },
       {
         title: 'Total Sales (JD)',
@@ -288,8 +320,20 @@ export default function HomeScreen() {
         value: formatCurrency(summary.totalCostJD)
       },
       {
-        title: 'Par Cst (JD)',
+        title: 'Cost on POS (JD)',
+        value: formatCurrency(summary.totalCostOnPosJD)
+      },
+      {
+        title: 'Cost Variance (JD)',
         value: formatCurrency(summary.parCstJD)
+      },
+      {
+        title: 'Variance (%)',
+        value: formatPercent(summary.variancePct, 1)
+      },
+      {
+        title: 'Total Variance (JD)',
+        value: formatCurrency(summary.totalVarianceJD)
       }
     ],
     [summary]
@@ -364,6 +408,19 @@ export default function HomeScreen() {
 
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
         <div className="space-y-4">
+          <div className="rounded-lg border bg-card/80 p-4">
+            <LineItemForm
+              value={draft}
+              derived={draftDerived}
+              isEditing={Boolean(editingItemId)}
+              onChangeText={handleDraftTextChange}
+              onChangeNumber={handleDraftNumberChange}
+              onSubmit={() => {
+                void handleSubmitDraft();
+              }}
+              onCancel={handleCancelEdit}
+            />
+          </div>
           <div className={cn('relative', loadingDay && 'opacity-60 pointer-events-none')}>
             {loadingDay ? (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
@@ -375,9 +432,7 @@ export default function HomeScreen() {
               selectedId={selectedItemId}
               summary={summary}
               onSelect={(id) => setSelectedItemId(id)}
-              onDraftChange={handleDraftChange}
-              onCommitString={handleCommitString}
-              onCommitNumber={handleCommitNumber}
+              onEdit={handleEditRow}
             />
           </div>
         </div>

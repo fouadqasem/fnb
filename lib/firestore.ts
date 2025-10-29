@@ -13,7 +13,11 @@ export const DEFAULT_SUMMARY: DailySummary = {
   totalCostJD: 0,
   totalSalesJD: 0,
   parCstJD: 0,
-  foodCostPct: 0
+  foodCostPct: 0,
+  totalCostOnPosJD: 0,
+  totalVarianceJD: 0,
+  recipeFoodCostPct: 0,
+  variancePct: 0
 };
 
 export function restaurantDocRef(restaurantId: string) {
@@ -67,10 +71,19 @@ export function getDay$(
 
   const unsubItems = onSnapshot(itemsRef, (snapshot) => {
     items = snapshot.docs.map((doc) => {
-
       const data = doc.data() as LineItem;
-      return { ...data, id: doc.id };
-
+      const input: LineItemInput = {
+        id: doc.id,
+        category: data.category ?? '',
+        menuItem: data.menuItem ?? '',
+        qtyNos: toNumberSafe(data.qtyNos),
+        unitCostJD: toNumberSafe(data.unitCostJD),
+        unitPriceJD: toNumberSafe(data.unitPriceJD),
+        costOnPosJD: toNumberSafe((data as LineItem).costOnPosJD),
+        totalSalesJD: toNumberSafe(data.totalSalesJD)
+      };
+      const derived = calcDerivedForItem(input, settings);
+      return { ...derived, createdAt: data.createdAt, updatedAt: data.updatedAt };
     });
     emit();
   });
@@ -158,6 +171,7 @@ function ensureLineInput(partial: Partial<LineItemInput> & { id?: string }): Lin
     qtyNos: toNumberSafe(partial.qtyNos),
     unitCostJD: toNumberSafe(partial.unitCostJD),
     unitPriceJD: toNumberSafe(partial.unitPriceJD),
+    costOnPosJD: toNumberSafe(partial.costOnPosJD),
     totalSalesJD: toNumberSafe(partial.totalSalesJD)
   };
 }

@@ -1,148 +1,177 @@
 'use client';
 
+import { Fragment, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import type { DailySummary, LineItem } from '@/types';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
 
 interface LineItemsGridProps {
   items: LineItem[];
   selectedId: string | null;
   summary: DailySummary;
   onSelect: (id: string | null) => void;
-  onDraftChange: (id: string, field: keyof LineItem, value: string) => void;
-  onCommitString: (id: string, field: keyof LineItem, value: string) => void;
-  onCommitNumber: (id: string, field: keyof LineItem, value: number) => void;
+  onEdit: (id: string) => void;
 }
 
-export function LineItemsGrid({
-  items,
-  selectedId,
-  summary,
-  onSelect,
-  onDraftChange,
-  onCommitString,
-  onCommitNumber
-}: LineItemsGridProps) {
-  const totals = useMemo(
-    () => ({
-      totalCost: formatCurrency(summary.totalCostJD),
+export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: LineItemsGridProps) {
+  const groupedItems = useMemo(() => {
+    if (items.length === 0) return [] as Array<[string, LineItem[]]>;
+    const sorted = [...items].sort((a, b) => {
+      const aCategory = a.category?.trim().toLowerCase() ?? '';
+      const bCategory = b.category?.trim().toLowerCase() ?? '';
+      if (aCategory === bCategory) {
+        return a.menuItem.localeCompare(b.menuItem, undefined, { sensitivity: 'base' });
+      }
+      return aCategory.localeCompare(bCategory, undefined, { sensitivity: 'base' });
+    });
+    const map = new Map<string, LineItem[]>();
+    sorted.forEach((item) => {
+      const key = item.category?.trim() ? item.category.trim() : 'Uncategorized';
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key)!.push(item);
+    });
+    return Array.from(map.entries());
+  }, [items]);
+
+  const totals = useMemo(() => {
+    const totalCostOnPos = items.reduce((acc, item) => acc + item.costOnPosJD, 0);
+    const totalCostVariance = items.reduce((acc, item) => acc + item.costVarianceJD, 0);
+    return {
       totalSales: formatCurrency(summary.totalSalesJD),
-      parCst: formatCurrency(summary.parCstJD),
-      totalImplied: formatCurrency(items.reduce((acc, item) => acc + item.impliedSalesJD, 0))
-    }),
-    [items, summary]
-  );
-
-  const renderNumericInput = (item: LineItem, field: keyof LineItem) => (
-    <Input
-      type="number"
-      inputMode="decimal"
-      step="0.001"
-      value={Number.isFinite(item[field] as number) ? String(item[field] ?? '') : ''}
-      onChange={(event) => {
-        const value = event.target.value;
-        onDraftChange(item.id, field, value);
-      }}
-      onBlur={(event) => {
-        const value = parseFloat(event.target.value);
-        onCommitNumber(item.id, field, Number.isFinite(value) ? Number(value.toFixed(3)) : 0);
-      }}
-    />
-  );
-
-  const warningBadge = (item: LineItem) => {
-    const implied = item.impliedSalesJD;
-    const sales = item.totalSalesJD;
-    if (implied <= 0) return null;
-    const diff = Math.abs(sales - implied) / implied;
-    if (diff <= 0.1) return null;
-    const direction = sales > implied ? 'above' : 'below';
-    return (
-      <Badge variant="secondary" className="ml-2 text-xs" title="Actual sales deviate more than 10% from implied sales">
-        {Math.round(diff * 100)}% {direction}
-      </Badge>
-    );
-  };
+      totalCost: formatCurrency(summary.totalCostJD),
+      totalCostOnPos: formatCurrency(totalCostOnPos),
+      totalCostVariance: formatCurrency(totalCostVariance),
+      dayFoodCost: formatPercent(summary.foodCostPct),
+      recipeFoodCost: formatPercent(summary.recipeFoodCostPct),
+      variancePct: formatPercent(summary.variancePct),
+      totalVariance: formatCurrency(summary.totalVarianceJD)
+    };
+  }, [items, summary]);
 
   return (
     <div className="overflow-hidden rounded-lg border bg-card/70">
-      <Table className="min-w-[900px]">
+      <Table className="min-w-[1100px]">
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="text-left">Category</TableHead>
-            <TableHead className="text-left">Menu Item</TableHead>
-            <TableHead>Qty Nos.</TableHead>
-            <TableHead>Unit Cost (JD)</TableHead>
-            <TableHead>Unit Price (JD)</TableHead>
-            <TableHead>Total Sales (JD)</TableHead>
-            <TableHead>Line Cost (JD)</TableHead>
-            <TableHead>Implied Sales (JD)</TableHead>
-            <TableHead>Variance (JD)</TableHead>
-            <TableHead>Variance (%)</TableHead>
+            <TableHead className="text-left">Item Name</TableHead>
+            <TableHead className="text-right">Qty</TableHead>
+            <TableHead className="text-right">Unit Cost (JD)</TableHead>
+            <TableHead className="text-right">Selling Price (JD)</TableHead>
+            <TableHead className="text-right">Cost on POS (JD)</TableHead>
+            <TableHead className="text-right">Total Sales (JD)</TableHead>
+            <TableHead className="text-right">Total Cost (JD)</TableHead>
+            <TableHead className="text-right">Cost Variance (JD)</TableHead>
+            <TableHead className="text-right">Day Food Cost (%)</TableHead>
+            <TableHead className="text-right">Recipe Food Cost (%)</TableHead>
+            <TableHead className="text-right">Variance (%)</TableHead>
+            <TableHead className="text-right">Total Variance (JD)</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.length === 0 ? (
+          {groupedItems.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
+              <TableCell colSpan={13} className="py-12 text-center text-muted-foreground">
                 No items for this date — add your first item.
               </TableCell>
             </TableRow>
           ) : (
-            items.map((item) => (
-              <TableRow
-                key={item.id}
-                data-state={selectedId === item.id ? 'selected' : undefined}
-                className={cn('cursor-pointer', selectedId === item.id && 'bg-primary/10')}
-                onClick={() => onSelect(item.id)}
-              >
-                <TableCell className="text-left">
-                  <Input
-                    value={item.category}
-                    onChange={(event) => onDraftChange(item.id, 'category', event.target.value)}
-                    onBlur={(event) => onCommitString(item.id, 'category', event.target.value.trim())}
-                    className="text-left"
-                  />
-                </TableCell>
-                <TableCell className="text-left">
-                  <Input
-                    value={item.menuItem}
-                    onChange={(event) => onDraftChange(item.id, 'menuItem', event.target.value)}
-                    onBlur={(event) => onCommitString(item.id, 'menuItem', event.target.value.trim())}
-                    className="text-left"
-                  />
-                </TableCell>
-                <TableCell>{renderNumericInput(item, 'qtyNos')}</TableCell>
-                <TableCell>{renderNumericInput(item, 'unitCostJD')}</TableCell>
-                <TableCell>{renderNumericInput(item, 'unitPriceJD')}</TableCell>
-                <TableCell className="flex items-center justify-end">
-                  {renderNumericInput(item, 'totalSalesJD')}
-                  {warningBadge(item)}
-                </TableCell>
-                <TableCell>{formatNumber(item.lineCostJD)}</TableCell>
-                <TableCell>{formatNumber(item.impliedSalesJD)}</TableCell>
-                <TableCell className={cn(item.varianceValueJD < 0 ? 'text-destructive' : 'text-emerald-500')}>
-                  {formatNumber(item.varianceValueJD)}
-                </TableCell>
-                <TableCell>{formatPercent(item.variancePct)}</TableCell>
-              </TableRow>
+            groupedItems.map(([category, group]) => (
+              <Fragment key={category}>
+                <TableRow key={`category-${category}`} className="bg-muted/40">
+                  <TableCell colSpan={13} className="text-left text-sm font-semibold uppercase tracking-wide">
+                    {category}
+                  </TableCell>
+                </TableRow>
+                {group.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    data-state={selectedId === item.id ? 'selected' : undefined}
+                    className={cn('cursor-pointer', selectedId === item.id && 'bg-primary/10')}
+                    onClick={() => onSelect(item.id)}
+                  >
+                    <TableCell className="text-left font-medium">{item.menuItem || '—'}</TableCell>
+                    <TableCell className="text-right">{formatNumber(item.qtyNos)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitCostJD)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitPriceJD)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.costOnPosJD)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.totalSalesJD)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.totalCostJD)}</TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-right',
+                        item.costVarianceJD > 0
+                          ? 'text-destructive'
+                          : item.costVarianceJD < 0
+                          ? 'text-emerald-500'
+                          : undefined
+                      )}
+                    >
+                      {formatCurrency(item.costVarianceJD)}
+                    </TableCell>
+                    <TableCell className="text-right">{formatPercent(item.dayFoodCostPct)}</TableCell>
+                    <TableCell className="text-right">{formatPercent(item.recipeFoodCostPct)}</TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-right',
+                        item.variancePct > 0
+                          ? 'text-destructive'
+                          : item.variancePct < 0
+                          ? 'text-emerald-500'
+                          : undefined
+                      )}
+                    >
+                      {formatPercent(item.variancePct)}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-right',
+                        item.totalVarianceJD > 0
+                          ? 'text-destructive'
+                          : item.totalVarianceJD < 0
+                          ? 'text-emerald-500'
+                          : undefined
+                      )}
+                    >
+                      {formatCurrency(item.totalVarianceJD)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEdit(item.id);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </Fragment>
             ))
           )}
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell className="text-left font-semibold" colSpan={5}>
-              Totals
-            </TableCell>
-            <TableCell className="font-semibold">{totals.totalSales}</TableCell>
-            <TableCell className="font-semibold">{totals.totalCost}</TableCell>
-            <TableCell className="font-semibold">{totals.totalImplied}</TableCell>
-            <TableCell className="font-semibold">{totals.parCst}</TableCell>
-            <TableCell className="font-semibold">{formatPercent(summary.foodCostPct)}</TableCell>
+            <TableCell className="text-left font-semibold">Totals</TableCell>
+            <TableCell />
+            <TableCell />
+            <TableCell />
+            <TableCell className="text-right font-semibold">{totals.totalCostOnPos}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.totalSales}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.totalCost}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.totalCostVariance}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.dayFoodCost}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.recipeFoodCost}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.variancePct}</TableCell>
+            <TableCell className="text-right font-semibold">{totals.totalVariance}</TableCell>
+            <TableCell />
           </TableRow>
         </TableFooter>
       </Table>
