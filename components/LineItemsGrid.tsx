@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailySummary, LineItem } from '@/types';
@@ -18,7 +18,6 @@ interface LineItemsGridProps {
 }
 
 export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: LineItemsGridProps) {
-  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const groupedItems = useMemo(() => {
     if (items.length === 0) return [] as Array<[string, LineItem[]]>;
     const sorted = [...items].sort((a, b) => {
@@ -39,6 +38,44 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
     });
     return Array.from(map.entries());
   }, [items]);
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    groupedItems.forEach(([category]) => {
+      initial[category] = true;
+    });
+    return initial;
+  });
+
+  useEffect(() => {
+    setCollapsedCategories((prev) => {
+      const next: Record<string, boolean> = {};
+      let changed = false;
+
+      groupedItems.forEach(([category]) => {
+        const previousValue = prev[category];
+        const value = previousValue ?? true;
+        next[category] = value;
+        if (value !== previousValue) {
+          changed = true;
+        }
+      });
+
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      if (prevKeys.length !== nextKeys.length) {
+        changed = true;
+      } else {
+        for (const key of prevKeys) {
+          if (!(key in next)) {
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [groupedItems]);
 
   const categorySummaries = useMemo(() => {
     const map = new Map<
@@ -79,7 +116,7 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
         <Table className="min-w-[1200px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="px-4 py-3 text-left">Item Name</TableHead>
+              <TableHead className="px-4 py-3 text-left">Menu Items</TableHead>
               <TableHead className="px-4 py-3 text-right">Qty</TableHead>
               <TableHead className="px-4 py-3 text-right">Unit Cost (JD)</TableHead>
               <TableHead className="px-4 py-3 text-right">Selling Price (JD)</TableHead>
@@ -103,7 +140,7 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
               </TableRow>
             ) : (
               groupedItems.map(([category, group]) => {
-                const isCollapsed = collapsedCategories[category] ?? false;
+                const isCollapsed = collapsedCategories[category] ?? true;
                 const categoryData = categorySummaries.get(category);
                 const toggleCategory = () => {
                   const nextCollapsed = !isCollapsed;

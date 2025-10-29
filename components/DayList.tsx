@@ -10,11 +10,12 @@ interface DayListProps {
   days: { date: string; summary: DailySummary }[];
   activeDate: string;
   onSelect: (date: string) => void;
+  className?: string;
 }
 
-export function DayList({ days, activeDate, onSelect }: DayListProps) {
+export function DayList({ days, activeDate, onSelect, className }: DayListProps) {
   return (
-    <div className="rounded-lg border bg-card/80 p-4">
+    <div className={cn('rounded-lg border bg-card/80 p-4', className)}>
       <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Recent days</h3>
       <ScrollArea className="h-48">
         <div className="flex flex-col gap-2 pr-2">
