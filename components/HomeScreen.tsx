@@ -177,9 +177,6 @@ export default function HomeScreen() {
     return () => unsubscribe();
   }, [currentRestaurantId]);
 
-  const draftInput = useMemo(() => draftToInput(draft), [draft]);
-  const draftDerived = useMemo(() => calcDerivedForItem(draftInput, settings), [draftInput, settings]);
-
   const handleDraftTextChange = useCallback((field: 'category' | 'menuItem', value: string) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   }, []);
@@ -302,38 +299,18 @@ export default function HomeScreen() {
   const metrics = useMemo(
     () => [
       {
-        title: 'Day Food Cost %',
-        value: formatPercent(summary.foodCostPct, 1),
-        hint: 'Cost on POS ÷ Total Sales × 100',
-        emphasize: true
-      },
-      {
-        title: 'Recipe Food Cost %',
-        value: formatPercent(summary.recipeFoodCostPct, 1)
-      },
-      {
         title: 'Total Sales (JD)',
         value: formatCurrency(summary.totalSalesJD)
-      },
-      {
-        title: 'Total Cost (JD)',
-        value: formatCurrency(summary.totalCostJD)
-      },
-      {
-        title: 'Cost on POS (JD)',
-        value: formatCurrency(summary.totalCostOnPosJD)
-      },
-      {
-        title: 'Cost Variance (JD)',
-        value: formatCurrency(summary.parCstJD)
       },
       {
         title: 'Variance (%)',
         value: formatPercent(summary.variancePct, 1)
       },
       {
-        title: 'Total Variance (JD)',
-        value: formatCurrency(summary.totalVarianceJD)
+        title: 'Food Cost (%)',
+        value: formatPercent(summary.foodCostPct, 1),
+        hint: 'Cost on POS ÷ Total Sales × 100',
+        emphasize: true
       }
     ],
     [summary]
@@ -387,7 +364,7 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {metrics.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
@@ -411,7 +388,6 @@ export default function HomeScreen() {
           <div className="rounded-lg border bg-card/80 p-4">
             <LineItemForm
               value={draft}
-              derived={draftDerived}
               isEditing={Boolean(editingItemId)}
               onChangeText={handleDraftTextChange}
               onChangeNumber={handleDraftNumberChange}

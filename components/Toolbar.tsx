@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { ImportCsvModal } from '@/components/Modals/ImportCsvModal';
 import { ConfirmClearModal } from '@/components/Modals/ConfirmClearModal';
 import type { DaySettings, LineItem } from '@/types';
@@ -59,16 +58,12 @@ export function Toolbar({
           <Trash2 className="h-4 w-4" /> Clear day
         </Button>
       </div>
-      <div className="flex items-center gap-2">
-        <Switch
-          id="toggle-implied"
-          checked={settings.useImpliedSalesWhenBlank}
-          onCheckedChange={(checked) => onToggleImplied(Boolean(checked))}
-        />
-        <Label htmlFor="toggle-implied" className="text-sm text-muted-foreground">
-          Use implied sales when Total Sales is blank
-        </Label>
-      </div>
+      <Switch
+        id="toggle-implied"
+        aria-label="Toggle implied sales autofill"
+        checked={settings.useImpliedSalesWhenBlank}
+        onCheckedChange={(checked) => onToggleImplied(Boolean(checked))}
+      />
       <ImportCsvModal
         open={importOpen}
         onOpenChange={setImportOpen}
