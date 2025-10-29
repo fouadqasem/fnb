@@ -54,9 +54,9 @@ export function LineItemForm({
           />
         </div>
         <div className="flex flex-col gap-1 md:col-span-1 xl:col-span-3">
-          <Label htmlFor="item-name">Item Name</Label>
+          <Label htmlFor="menu-item">Menu Items</Label>
           <Input
-            id="item-name"
+            id="menu-item"
             value={value.menuItem}
             onChange={(event) => onChangeText('menuItem', event.target.value)}
             placeholder="e.g. Greek Salad"
@@ -64,7 +64,7 @@ export function LineItemForm({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
         <div className="flex flex-col gap-1">
           <Label htmlFor="item-qty">Qty</Label>
           <Input
@@ -120,13 +120,14 @@ export function LineItemForm({
             onChange={(event) => onChangeNumber('totalSalesJD', event.target.value)}
           />
         </div>
-      </div>
-
-      <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">{isEditing ? 'Update item' : 'Add item'}</Button>
+        <div className="flex items-end justify-end gap-2 md:col-span-2 lg:col-span-1">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full md:w-auto">
+            Cancel
+          </Button>
+          <Button type="submit" className="w-full md:w-auto">
+            {isEditing ? 'Update item' : 'Add item'}
+          </Button>
+        </div>
       </div>
     </form>
   );

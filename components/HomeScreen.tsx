@@ -36,19 +36,6 @@ const STORAGE_KEYS = {
   date: 'fnb_selectedDate'
 } as const;
 
-function toLineItemInput(item: LineItem): LineItemInput {
-  return {
-    id: item.id,
-    category: item.category,
-    menuItem: item.menuItem,
-    qtyNos: item.qtyNos,
-    unitCostJD: item.unitCostJD,
-    unitPriceJD: item.unitPriceJD,
-    costOnPosJD: item.costOnPosJD,
-    totalSalesJD: item.totalSalesJD
-  };
-}
-
 function toDraft(item: LineItem): LineItemDraft {
   return {
     id: item.id,
@@ -286,31 +273,21 @@ export default function HomeScreen() {
     URL.revokeObjectURL(url);
   };
 
-  const handleToggleImplied = async (value: boolean) => {
-    if (!currentRestaurantId) return;
-    const newSettings = { ...settings, useImpliedSalesWhenBlank: value };
-    const recalculated = items.map((item) => calcDerivedForItem({ ...toLineItemInput(item) }, newSettings));
-    setSettings(newSettings);
-    setItems(recalculated);
-    setSummary(calcSummary(recalculated));
-    await importItems(currentRestaurantId, selectedDate, recalculated, newSettings, items);
-  };
-
   const metrics = useMemo(
     () => [
       {
-        title: 'Total Sales (JD)',
-        value: formatCurrency(summary.totalSalesJD)
+        title: 'Food Cost (%)',
+        value: formatPercent(summary.foodCostPct, 1),
+        hint: 'Cost on POS ÷ Total Sales × 100',
+        emphasize: true
       },
       {
         title: 'Variance (%)',
         value: formatPercent(summary.variancePct, 1)
       },
       {
-        title: 'Food Cost (%)',
-        value: formatPercent(summary.foodCostPct, 1),
-        hint: 'Cost on POS ÷ Total Sales × 100',
-        emphasize: true
+        title: 'Total Sales (JD)',
+        value: formatCurrency(summary.totalSalesJD)
       }
     ],
     [summary]
@@ -364,27 +341,19 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
+          <div key={metric.title} className="h-full">
+            <MetricCard {...metric} />
+          </div>
         ))}
+        <div className="sm:col-span-2 xl:col-span-1">
+          <DayList days={recentDays} activeDate={selectedDate} onSelect={setSelectedDate} className="h-full" />
+        </div>
       </section>
 
-      <Toolbar
-        settings={settings}
-        onAdd={handleAddRow}
-        onDuplicate={handleDuplicateRow}
-        onDelete={handleDeleteRow}
-        onImport={handleImport}
-        onExport={handleExport}
-        onClear={handleClearDay}
-        onToggleImplied={handleToggleImplied}
-        disableDuplicate={!selectedItemId}
-        disableDelete={!selectedItemId}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-4">
+      <div className="space-y-6">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
           <div className="rounded-lg border bg-card/80 p-4">
             <LineItemForm
               value={draft}
@@ -397,22 +366,33 @@ export default function HomeScreen() {
               onCancel={handleCancelEdit}
             />
           </div>
-          <div className={cn('relative', loadingDay && 'opacity-60 pointer-events-none')}>
-            {loadingDay ? (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : null}
-            <LineItemsGrid
-              items={items}
-              selectedId={selectedItemId}
-              summary={summary}
-              onSelect={(id) => setSelectedItemId(id)}
-              onEdit={handleEditRow}
-            />
-          </div>
+          <Toolbar
+            settings={settings}
+            onAdd={handleAddRow}
+            onDuplicate={handleDuplicateRow}
+            onDelete={handleDeleteRow}
+            onImport={handleImport}
+            onExport={handleExport}
+            onClear={handleClearDay}
+            disableDuplicate={!selectedItemId}
+            disableDelete={!selectedItemId}
+            className="h-full"
+          />
         </div>
-        <DayList days={recentDays} activeDate={selectedDate} onSelect={setSelectedDate} />
+        <div className={cn('relative', loadingDay && 'pointer-events-none opacity-60')}>
+          {loadingDay ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : null}
+          <LineItemsGrid
+            items={items}
+            selectedId={selectedItemId}
+            summary={summary}
+            onSelect={(id) => setSelectedItemId(id)}
+            onEdit={handleEditRow}
+          />
+        </div>
       </div>
     </main>
   );
