@@ -4,9 +4,6 @@ import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { LineItem } from '@/types';
-import { formatCurrency, formatPercent } from '@/lib/format';
-import { cn } from '@/lib/utils';
 
 export type LineItemDraft = {
   id: string;
@@ -21,7 +18,6 @@ export type LineItemDraft = {
 
 interface LineItemFormProps {
   value: LineItemDraft;
-  derived: LineItem;
   isEditing: boolean;
   onChangeText: (field: 'category' | 'menuItem', value: string) => void;
   onChangeNumber: (
@@ -34,7 +30,6 @@ interface LineItemFormProps {
 
 export function LineItemForm({
   value,
-  derived,
   isEditing,
   onChangeText,
   onChangeNumber,
@@ -45,19 +40,6 @@ export function LineItemForm({
     event.preventDefault();
     onSubmit();
   };
-
-  const renderMetric = (label: string, displayValue: string, variant?: 'positive' | 'negative') => (
-    <div
-      className={cn(
-        'rounded-md border bg-muted/50 p-3 text-sm',
-        variant === 'positive' && 'border-emerald-500/60 text-emerald-600 dark:text-emerald-400',
-        variant === 'negative' && 'border-destructive/60 text-destructive'
-      )}
-    >
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-semibold">{displayValue}</p>
-    </div>
-  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,25 +120,6 @@ export function LineItemForm({
             onChange={(event) => onChangeNumber('totalSalesJD', event.target.value)}
           />
         </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {renderMetric('Total Cost', formatCurrency(derived.totalCostJD))}
-        {renderMetric(
-          'Cost Variance',
-          formatCurrency(derived.costVarianceJD),
-          derived.costVarianceJD < 0
-            ? 'positive'
-            : derived.costVarianceJD > 0
-            ? 'negative'
-            : undefined
-        )}
-        {renderMetric('Day Food Cost', formatPercent(derived.dayFoodCostPct))}
-        {renderMetric('Recipe Food Cost', formatPercent(derived.recipeFoodCostPct))}
-        {renderMetric('Variance (%)', formatPercent(derived.variancePct),
-          derived.variancePct <= 0 ? 'positive' : 'negative')}
-        {renderMetric('Total Variance', formatCurrency(derived.totalVarianceJD),
-          derived.totalVarianceJD <= 0 ? 'positive' : 'negative')}
       </div>
 
       <div className="flex items-center justify-end gap-2">

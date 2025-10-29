@@ -26,7 +26,7 @@ export function DayList({ days, activeDate, onSelect }: DayListProps) {
                 key={day.date}
                 onClick={() => onSelect(day.date)}
                 className={cn(
-                  'flex w-full flex-col rounded-md border px-3 py-2 text-left transition-colors hover:border-primary hover:bg-primary/10',
+                  'flex w-full flex-col rounded-md border px-3 py-3 text-left transition-colors hover:border-primary hover:bg-primary/10',
                   activeDate === day.date ? 'border-primary bg-primary/10' : 'border-border'
                 )}
               >
@@ -34,7 +34,7 @@ export function DayList({ days, activeDate, onSelect }: DayListProps) {
                   <span>{day.date}</span>
                   <Badge variant="secondary">{formatPercent(day.summary.foodCostPct)}</Badge>
                 </div>
-                <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                   <span>Total Sales: {formatCurrency(day.summary.totalSalesJD)}</span>
                   <span>Cost Variance: {formatCurrency(day.summary.parCstJD)}</span>
                 </div>
