@@ -63,3 +63,5 @@ export function getFirebaseServices(): FirebaseServices {
 
 export async function ensurePersistence() {
   return getFirebaseServices();
+
+}
