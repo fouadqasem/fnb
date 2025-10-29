@@ -2,7 +2,6 @@
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import {
-  enableIndexedDbPersistence,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -16,8 +15,11 @@ type FirebaseServices = {
   auth: Auth;
 };
 
-let services: FirebaseServices | null = null;
-let persistencePromise: Promise<void> | null = null;
+const globalForFirebase = globalThis as typeof globalThis & {
+  __FNB_FIREBASE__?: FirebaseServices;
+};
+
+let services: FirebaseServices | null = globalForFirebase.__FNB_FIREBASE__ ?? null;
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -54,20 +56,10 @@ export function getFirebaseServices(): FirebaseServices {
   });
   const auth = getAuth(app);
 
-  if (typeof window !== 'undefined' && !persistencePromise) {
-    persistencePromise = enableIndexedDbPersistence(db).catch(() => {
-      // Ignore persistence errors (likely already enabled in another tab).
-    });
-  }
-
   services = { app, db, auth };
+  globalForFirebase.__FNB_FIREBASE__ = services;
   return services;
 }
 
 export async function ensurePersistence() {
-  const current = getFirebaseServices();
-  if (persistencePromise) {
-    await persistencePromise.catch(() => undefined);
-  }
-  return current;
-}
+  return getFirebaseServices();
