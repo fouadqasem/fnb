@@ -26,25 +26,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { auth: authInstance } = getFirebaseServices();
     setAuth(authInstance);
 
-    let unsub = () => {};
-    unsub = onAuthStateChanged(authInstance, async (current) => {
-      if (!current) {
-        try {
-          await signInAnonymously(authInstance);
-        } catch (error) {
-          console.error('Anonymous sign-in failed', error);
-        }
+    let anonymousUnsupported = false;
+
+    const handleAnonymousError = (error: unknown) => {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code?: unknown }).code)
+          : '';
+
+      if (code === 'auth/configuration-not-found') {
+        anonymousUnsupported = true;
+        console.warn('Anonymous auth is not enabled. Continuing without authentication.');
+        setLoading(false);
         return;
       }
 
-      setUser(current);
-      setLoading(false);
+      console.error('Anonymous sign-in failed', error);
+    };
+
+    const signInIfSupported = async () => {
+      if (anonymousUnsupported) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        await signInAnonymously(authInstance);
+      } catch (error) {
+        handleAnonymousError(error);
+      }
+    };
+
+    const unsub = onAuthStateChanged(authInstance, (current) => {
+      if (current) {
+        setUser(current);
+        setLoading(false);
+        return;
+      }
+
+      if (anonymousUnsupported) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      void signInIfSupported();
     });
 
     if (!authInstance.currentUser) {
-      signInAnonymously(authInstance).catch((error) => {
-        console.error('Anonymous sign-in failed', error);
-      });
+      void signInIfSupported();
     }
 
     return () => {
