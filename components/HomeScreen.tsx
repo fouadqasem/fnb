@@ -100,6 +100,21 @@ export default function HomeScreen() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [loadingDay, setLoadingDay] = useState(false);
 
+  const currentRestaurant = useMemo(() => {
+    if (!currentRestaurantId) return null;
+    return restaurants.find((restaurant) => restaurant.id === currentRestaurantId) ?? null;
+  }, [currentRestaurantId, restaurants]);
+
+  const pageTitle = useMemo(() => {
+    const name = currentRestaurant?.name?.trim();
+    return `Food Cost for ${name && name.length > 0 ? name : '—'}`;
+  }, [currentRestaurant]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    document.title = pageTitle;
+  }, [pageTitle]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const storedRestaurant = window.localStorage.getItem(STORAGE_KEYS.restaurant);
@@ -303,7 +318,7 @@ export default function HomeScreen() {
     <main className="container mx-auto max-w-7xl space-y-6 py-8">
       <header className="flex flex-col gap-4 border-b pb-6 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold">Daily Food Cost Worksheet</h1>
+          <h1 className="text-2xl font-semibold">{pageTitle}</h1>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <RestaurantSwitcher
               restaurants={restaurants}
@@ -353,8 +368,8 @@ export default function HomeScreen() {
       </section>
 
       <div className="space-y-6">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="rounded-lg border bg-card/80 p-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] xl:grid-cols-4">
+          <div className="rounded-lg border bg-card/80 p-4 xl:col-span-3">
             <LineItemForm
               value={draft}
               isEditing={Boolean(editingItemId)}
@@ -376,7 +391,7 @@ export default function HomeScreen() {
             onClear={handleClearDay}
             disableDuplicate={!selectedItemId}
             disableDelete={!selectedItemId}
-            className="h-full"
+            className="h-full xl:col-span-1"
           />
         </div>
         <div className={cn('relative', loadingDay && 'pointer-events-none opacity-60')}>
