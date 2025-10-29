@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { DailySummary, LineItem } from '@/types';
-import { formatCurrency, formatNumber, formatPercent } from '@/lib/format';
+import { formatNumber, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { calcSummary } from '@/lib/calculations';
@@ -99,21 +99,21 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
     const totalCostOnPos = items.reduce((acc, item) => acc + item.costOnPosJD, 0);
     const totalCostVariance = items.reduce((acc, item) => acc + item.costVarianceJD, 0);
     return {
-      totalSales: formatCurrency(summary.totalSalesJD),
-      totalCost: formatCurrency(summary.totalCostJD),
-      totalCostOnPos: formatCurrency(totalCostOnPos),
-      totalCostVariance: formatCurrency(totalCostVariance),
+      totalSales: formatNumber(summary.totalSalesJD),
+      totalCost: formatNumber(summary.totalCostJD),
+      totalCostOnPos: formatNumber(totalCostOnPos),
+      totalCostVariance: formatNumber(totalCostVariance),
       dayFoodCost: formatPercent(summary.foodCostPct),
       recipeFoodCost: formatPercent(summary.recipeFoodCostPct),
       variancePct: formatPercent(summary.variancePct),
-      totalVariance: formatCurrency(summary.totalVarianceJD)
+      totalVariance: formatNumber(summary.totalVarianceJD)
     };
   }, [items, summary]);
 
   return (
     <div className="rounded-lg border bg-card/70">
       <div className="overflow-x-auto">
-        <Table className="min-w-[1200px]">
+        <Table className="w-full">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="px-4 py-3 text-left">Menu Items</TableHead>
@@ -188,17 +188,17 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
                       </TableCell>
                       <TableCell className="px-4 py-3 text-right font-semibold">
                         {isCollapsed && summaryTotals
-                          ? formatCurrency(summaryTotals.totalCostOnPosJD)
+                          ? formatNumber(summaryTotals.totalCostOnPosJD)
                           : null}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-right font-semibold">
                         {isCollapsed && summaryTotals
-                          ? formatCurrency(summaryTotals.totalSalesJD)
+                          ? formatNumber(summaryTotals.totalSalesJD)
                           : null}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-right font-semibold">
                         {isCollapsed && summaryTotals
-                          ? formatCurrency(summaryTotals.totalCostJD)
+                          ? formatNumber(summaryTotals.totalCostJD)
                           : null}
                       </TableCell>
                       <TableCell
@@ -212,7 +212,7 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
                         )}
                       >
                         {isCollapsed && summaryTotals
-                          ? formatCurrency(summaryTotals.parCstJD)
+                          ? formatNumber(summaryTotals.parCstJD)
                           : null}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-right font-semibold">
@@ -250,7 +250,7 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
                         )}
                       >
                         {isCollapsed && summaryTotals
-                          ? formatCurrency(summaryTotals.totalVarianceJD)
+                          ? formatNumber(summaryTotals.totalVarianceJD)
                           : null}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-right" />
@@ -273,19 +273,19 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
                             {formatNumber(item.qtyNos)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
-                            {formatCurrency(item.unitCostJD)}
+                            {formatNumber(item.unitCostJD)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
-                            {formatCurrency(item.unitPriceJD)}
+                            {formatNumber(item.unitPriceJD)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
-                            {formatCurrency(item.costOnPosJD)}
+                            {formatNumber(item.costOnPosJD)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
-                            {formatCurrency(item.totalSalesJD)}
+                            {formatNumber(item.totalSalesJD)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
-                            {formatCurrency(item.totalCostJD)}
+                            {formatNumber(item.totalCostJD)}
                           </TableCell>
                           <TableCell
                             className={cn(
@@ -297,7 +297,7 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
                                 : undefined
                             )}
                           >
-                            {formatCurrency(item.costVarianceJD)}
+                            {formatNumber(item.costVarianceJD)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
                             {formatPercent(item.dayFoodCostPct)}
@@ -327,7 +327,7 @@ export function LineItemsGrid({ items, selectedId, summary, onSelect, onEdit }: 
                                 : undefined
                             )}
                           >
-                            {formatCurrency(item.totalVarianceJD)}
+                            {formatNumber(item.totalVarianceJD)}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
                             <Button
