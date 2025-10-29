@@ -28,7 +28,7 @@ import { formatCurrency, formatPercent } from '@/lib/format';
 import type { DailySummary, DaySettings, LineItem, LineItemInput, Restaurant } from '@/types';
 import { exportCsv } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEYS = {
@@ -99,6 +99,7 @@ export default function HomeScreen() {
   const [draft, setDraft] = useState<LineItemDraft>(() => createEmptyDraft());
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [loadingDay, setLoadingDay] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const currentRestaurant = useMemo(() => {
     if (!currentRestaurantId) return null;
@@ -163,6 +164,7 @@ export default function HomeScreen() {
       setSelectedItemId(null);
       setEditingItemId(null);
       setDraft(createEmptyDraft());
+      setIsFormOpen(false);
     });
 
     return () => unsubscribe();
@@ -206,6 +208,7 @@ export default function HomeScreen() {
     await upsertItem(currentRestaurantId, selectedDate, payload, settings, items);
     setEditingItemId(null);
     setDraft(createEmptyDraft());
+    setIsFormOpen(false);
   }, [currentRestaurantId, draft, editingItemId, items, selectedDate, settings]);
 
   const handleAddRow = () => {
@@ -213,6 +216,7 @@ export default function HomeScreen() {
     setEditingItemId(null);
     setDraft(createEmptyDraft());
     setSelectedItemId(null);
+    setIsFormOpen(true);
   };
 
   const handleDuplicateRow = () => {
@@ -223,6 +227,7 @@ export default function HomeScreen() {
     setDraft(duplicateDraft);
     setEditingItemId(null);
     setSelectedItemId(null);
+    setIsFormOpen(true);
   };
 
   const handleEditRow = useCallback(
@@ -232,6 +237,7 @@ export default function HomeScreen() {
       setDraft(toDraft(target));
       setEditingItemId(id);
       setSelectedItemId(id);
+      setIsFormOpen(true);
     },
     [items]
   );
@@ -239,6 +245,7 @@ export default function HomeScreen() {
   const handleCancelEdit = useCallback(() => {
     setEditingItemId(null);
     setDraft(createEmptyDraft());
+    setIsFormOpen(false);
   }, []);
 
   const handleDeleteRow = async () => {
@@ -275,6 +282,7 @@ export default function HomeScreen() {
     setEditingItemId(null);
     setDraft(createEmptyDraft());
     setSelectedItemId(null);
+    setIsFormOpen(false);
   };
 
   const handleExport = () => {
@@ -368,32 +376,6 @@ export default function HomeScreen() {
       </section>
 
       <div className="space-y-6">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] xl:grid-cols-4">
-          <div className="rounded-lg border bg-card/80 p-4 xl:col-span-3">
-            <LineItemForm
-              value={draft}
-              isEditing={Boolean(editingItemId)}
-              onChangeText={handleDraftTextChange}
-              onChangeNumber={handleDraftNumberChange}
-              onSubmit={() => {
-                void handleSubmitDraft();
-              }}
-              onCancel={handleCancelEdit}
-            />
-          </div>
-          <Toolbar
-            settings={settings}
-            onAdd={handleAddRow}
-            onDuplicate={handleDuplicateRow}
-            onDelete={handleDeleteRow}
-            onImport={handleImport}
-            onExport={handleExport}
-            onClear={handleClearDay}
-            disableDuplicate={!selectedItemId}
-            disableDelete={!selectedItemId}
-            className="h-full xl:col-span-1"
-          />
-        </div>
         <div className={cn('relative', loadingDay && 'pointer-events-none opacity-60')}>
           {loadingDay ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
@@ -408,6 +390,58 @@ export default function HomeScreen() {
             onEdit={handleEditRow}
           />
         </div>
+      </div>
+      <Toolbar
+        settings={settings}
+        onAdd={handleAddRow}
+        onDuplicate={handleDuplicateRow}
+        onDelete={handleDeleteRow}
+        onImport={handleImport}
+        onExport={handleExport}
+        onClear={handleClearDay}
+        disableDuplicate={!selectedItemId}
+        disableDelete={!selectedItemId}
+        className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 sm:bottom-auto sm:left-auto sm:right-6 sm:top-1/2 sm:-translate-y-1/2 sm:translate-x-0"
+        orientation="responsive"
+      />
+      <div className="pointer-events-none fixed inset-0 z-50 flex" aria-hidden={!isFormOpen}>
+        <div
+          className={cn(
+            'pointer-events-auto relative flex h-full w-full max-w-xl flex-col overflow-y-auto bg-muted p-6 shadow-2xl transition-transform duration-300 ease-in-out',
+            isFormOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="line-item-form-heading"
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 id="line-item-form-heading" className="text-lg font-semibold">
+              {editingItemId ? 'Edit record' : 'New record'}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={handleCancelEdit} aria-label="Close form">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <LineItemForm
+            value={draft}
+            isEditing={Boolean(editingItemId)}
+            onChangeText={handleDraftTextChange}
+            onChangeNumber={handleDraftNumberChange}
+            onSubmit={() => {
+              void handleSubmitDraft();
+            }}
+            onCancel={handleCancelEdit}
+          />
+        </div>
+        <button
+          type="button"
+          className={cn(
+            'pointer-events-auto h-full flex-1 bg-black/40 transition-opacity duration-300 ease-in-out',
+            isFormOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+          )}
+          onClick={handleCancelEdit}
+          aria-label="Close form overlay"
+        />
       </div>
     </main>
   );
