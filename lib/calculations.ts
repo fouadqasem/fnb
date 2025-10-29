@@ -5,64 +5,100 @@ export function toNumberSafe(value: unknown): number {
   return Number.isFinite(num) ? num : 0;
 }
 
-export function calcLineCost(qtyNos: number, unitCostJD: number) {
+export function calcTotalCost(qtyNos: number, unitCostJD: number) {
   return toNumberSafe(qtyNos) * toNumberSafe(unitCostJD);
 }
 
-export function calcImpliedSales(qtyNos: number, unitPriceJD: number) {
-  return toNumberSafe(qtyNos) * toNumberSafe(unitPriceJD);
+export function calcCostVariance(totalCostJD: number, costOnPosJD: number) {
+  return toNumberSafe(totalCostJD) - toNumberSafe(costOnPosJD);
 }
 
-export function calcLineVariance(totalSalesJD: number, lineCostJD: number) {
+export function calcDayFoodCost(costOnPosJD: number, totalSalesJD: number) {
   const safeSales = toNumberSafe(totalSalesJD);
-  const safeCost = toNumberSafe(lineCostJD);
-  const value = safeSales - safeCost;
-  const pct = safeSales > 0 ? (value / safeSales) * 100 : 0;
-  return { value, pct };
+  const safeCostOnPos = toNumberSafe(costOnPosJD);
+  return safeSales > 0 ? (safeCostOnPos / safeSales) * 100 : 0;
+}
+
+export function calcRecipeFoodCost(unitCostJD: number, unitPriceJD: number) {
+  const safePrice = toNumberSafe(unitPriceJD);
+  const safeCost = toNumberSafe(unitCostJD);
+  return safePrice > 0 ? (safeCost / safePrice) * 100 : 0;
+}
+
+export function calcVariancePercent(recipeFoodCostPct: number, dayFoodCostPct: number) {
+  return toNumberSafe(recipeFoodCostPct) - toNumberSafe(dayFoodCostPct);
+}
+
+export function calcTotalVariance(totalCostJD: number, variancePct: number) {
+  return toNumberSafe(totalCostJD) * (toNumberSafe(variancePct) / 100);
 }
 
 export function calcDerivedForItem(item: LineItemInput, settings: DaySettings): LineItem {
   const qtyNos = toNumberSafe(item.qtyNos);
   const unitCostJD = toNumberSafe(item.unitCostJD);
   const unitPriceJD = toNumberSafe(item.unitPriceJD);
-  const impliedSalesJD = calcImpliedSales(qtyNos, unitPriceJD);
+  const costOnPosJD = toNumberSafe(item.costOnPosJD);
+  const impliedSalesJD = qtyNos * unitPriceJD;
   const totalSalesInput = toNumberSafe(item.totalSalesJD);
   const totalSalesJD =
     settings.useImpliedSalesWhenBlank && totalSalesInput === 0 ? impliedSalesJD : totalSalesInput;
-  const lineCostJD = calcLineCost(qtyNos, unitCostJD);
-  const variance = calcLineVariance(totalSalesJD, lineCostJD);
+  const totalCostJD = calcTotalCost(qtyNos, unitCostJD);
+  const costVarianceJD = calcCostVariance(totalCostJD, costOnPosJD);
+  const dayFoodCostPct = calcDayFoodCost(costOnPosJD, totalSalesJD);
+  const recipeFoodCostPct = calcRecipeFoodCost(unitCostJD, unitPriceJD);
+  const variancePct = calcVariancePercent(recipeFoodCostPct, dayFoodCostPct);
+  const totalVarianceJD = calcTotalVariance(totalCostJD, variancePct);
 
   return {
     ...item,
     qtyNos,
     unitCostJD,
     unitPriceJD,
+    costOnPosJD,
     totalSalesJD,
-    lineCostJD,
-    impliedSalesJD,
-    varianceValueJD: variance.value,
-    variancePct: variance.pct
+    totalCostJD,
+    costVarianceJD,
+    dayFoodCostPct,
+    recipeFoodCostPct,
+    variancePct,
+    totalVarianceJD
   };
 }
 
 export function calcSummary(items: LineItem[]): DailySummary {
   const totals = items.reduce(
     (acc, item) => {
-      acc.totalCostJD += toNumberSafe(item.lineCostJD);
+      acc.totalCostJD += toNumberSafe(item.totalCostJD);
       acc.totalSalesJD += toNumberSafe(item.totalSalesJD);
+      acc.totalCostOnPosJD += toNumberSafe(item.costOnPosJD);
+      acc.totalVarianceJD += toNumberSafe(item.totalVarianceJD);
+      acc.totalRecipeSalesJD += toNumberSafe(item.unitPriceJD) * toNumberSafe(item.qtyNos);
       return acc;
     },
-    { totalCostJD: 0, totalSalesJD: 0 }
+    {
+      totalCostJD: 0,
+      totalSalesJD: 0,
+      totalCostOnPosJD: 0,
+      totalVarianceJD: 0,
+      totalRecipeSalesJD: 0
+    }
   );
 
-  const parCstJD = totals.totalSalesJD - totals.totalCostJD;
-  const foodCostPct = totals.totalSalesJD > 0 ? (totals.totalCostJD / totals.totalSalesJD) * 100 : 0;
+  const dayFoodCostPct = calcDayFoodCost(totals.totalCostOnPosJD, totals.totalSalesJD);
+  const recipeFoodCostPct =
+    totals.totalRecipeSalesJD > 0 ? (totals.totalCostJD / totals.totalRecipeSalesJD) * 100 : 0;
+  const variancePct = calcVariancePercent(recipeFoodCostPct, dayFoodCostPct);
+  const parCstJD = calcCostVariance(totals.totalCostJD, totals.totalCostOnPosJD);
 
   return {
     totalCostJD: totals.totalCostJD,
     totalSalesJD: totals.totalSalesJD,
     parCstJD,
-    foodCostPct,
+    foodCostPct: dayFoodCostPct,
+    totalCostOnPosJD: totals.totalCostOnPosJD,
+    totalVarianceJD: totals.totalVarianceJD,
+    recipeFoodCostPct,
+    variancePct,
     updatedAt: undefined
   };
 }

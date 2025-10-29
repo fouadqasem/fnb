@@ -8,6 +8,7 @@ export const CSV_HEADERS = [
   'Qty Nos.',
   'Unit Cost (JD)',
   'Unit Price (JD)',
+  'Cost on POS (JD)',
   'Total Sales (JD)'
 ];
 
@@ -19,7 +20,8 @@ export function sanitizeRow(values: string[]): LineItemInput {
     qtyNos: toNumberSafe(values[2]),
     unitCostJD: toNumberSafe(values[3]),
     unitPriceJD: toNumberSafe(values[4]),
-    totalSalesJD: toNumberSafe(values[5])
+    costOnPosJD: toNumberSafe(values[5]),
+    totalSalesJD: toNumberSafe(values[6])
   };
 }
 
@@ -47,11 +49,14 @@ export function exportCsv(items: LineItem[]): string {
     'Qty Nos.': item.qtyNos,
     'Unit Cost (JD)': item.unitCostJD,
     'Unit Price (JD)': item.unitPriceJD,
+    'Cost on POS (JD)': item.costOnPosJD,
     'Total Sales (JD)': item.totalSalesJD,
-    'Line Cost (JD)': item.lineCostJD,
-    'Implied Sales (JD)': item.impliedSalesJD,
-    'Variance (JD)': item.varianceValueJD,
-    'Variance (%)': item.variancePct
+    'Total Cost (JD)': item.totalCostJD,
+    'Cost Variance (JD)': item.costVarianceJD,
+    'Day Food Cost (%)': item.dayFoodCostPct,
+    'Recipe Food Cost (%)': item.recipeFoodCostPct,
+    'Variance (%)': item.variancePct,
+    'Total Variance (JD)': item.totalVarianceJD
   }));
 
   return Papa.unparse(data);

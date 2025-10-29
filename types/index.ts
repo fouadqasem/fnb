@@ -17,6 +17,10 @@ export type DailySummary = {
   totalSalesJD: number;
   parCstJD: number;
   foodCostPct: number;
+  totalCostOnPosJD: number;
+  totalVarianceJD: number;
+  recipeFoodCostPct: number;
+  variancePct: number;
   updatedAt?: Timestamp;
 };
 
@@ -27,14 +31,17 @@ export type LineItemInput = {
   qtyNos: number;
   unitCostJD: number;
   unitPriceJD: number;
+  costOnPosJD: number;
   totalSalesJD: number;
 };
 
 export type LineItemDerived = {
-  lineCostJD: number;
-  impliedSalesJD: number;
-  varianceValueJD: number;
+  totalCostJD: number;
+  costVarianceJD: number;
+  dayFoodCostPct: number;
+  recipeFoodCostPct: number;
   variancePct: number;
+  totalVarianceJD: number;
 };
 
 export type LineItem = LineItemInput &
