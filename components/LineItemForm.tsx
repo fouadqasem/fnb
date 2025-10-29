@@ -51,6 +51,7 @@ export function LineItemForm({
             value={value.category}
             onChange={(event) => onChangeText('category', event.target.value)}
             placeholder="e.g. Salads"
+            className="h-12 text-base"
           />
         </div>
         <div className="flex flex-col gap-1 md:col-span-1 xl:col-span-3">
@@ -60,11 +61,12 @@ export function LineItemForm({
             value={value.menuItem}
             onChange={(event) => onChangeText('menuItem', event.target.value)}
             placeholder="e.g. Greek Salad"
+            className="h-12 text-base"
           />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <Label htmlFor="item-qty">Qty</Label>
           <Input
@@ -74,6 +76,7 @@ export function LineItemForm({
             step="0.001"
             value={value.qtyNos}
             onChange={(event) => onChangeNumber('qtyNos', event.target.value)}
+            className="h-12 text-base"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -85,6 +88,7 @@ export function LineItemForm({
             step="0.001"
             value={value.unitCostJD}
             onChange={(event) => onChangeNumber('unitCostJD', event.target.value)}
+            className="h-12 text-base"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -96,6 +100,7 @@ export function LineItemForm({
             step="0.001"
             value={value.unitPriceJD}
             onChange={(event) => onChangeNumber('unitPriceJD', event.target.value)}
+            className="h-12 text-base"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -107,6 +112,7 @@ export function LineItemForm({
             step="0.001"
             value={value.costOnPosJD}
             onChange={(event) => onChangeNumber('costOnPosJD', event.target.value)}
+            className="h-12 text-base"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -118,16 +124,18 @@ export function LineItemForm({
             step="0.001"
             value={value.totalSalesJD}
             onChange={(event) => onChangeNumber('totalSalesJD', event.target.value)}
+            className="h-12 text-base"
           />
         </div>
-        <div className="flex items-end justify-end gap-2 md:col-span-2 lg:col-span-1">
-          <Button type="button" variant="outline" onClick={onCancel} className="w-full md:w-auto">
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="outline" onClick={onCancel} className="h-12 sm:w-auto">
             Cancel
-          </Button>
-          <Button type="submit" className="w-full md:w-auto">
-            {isEditing ? 'Update item' : 'Add item'}
-          </Button>
-        </div>
+        </Button>
+        <Button type="submit" className="h-12 sm:w-auto">
+          {isEditing ? 'Update item' : 'Add item'}
+        </Button>
       </div>
     </form>
   );
