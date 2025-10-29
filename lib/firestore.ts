@@ -35,11 +35,13 @@ export function listActiveRestaurants$(
   const { db } = getFirebaseServices();
   const restaurantsQuery = query(
     collection(db, 'restaurants'),
-    where('isActive', '==', true),
-    orderBy('name')
+    where('isActive', '==', true)
   );
   return onSnapshot(restaurantsQuery, (snapshot) => {
-    callback(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() as Omit<Restaurant, 'id'>) })));
+    const restaurants = snapshot.docs
+      .map((docSnap) => ({ id: docSnap.id, ...(docSnap.data() as Omit<Restaurant, 'id'>) }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    callback(restaurants);
   });
 }
 

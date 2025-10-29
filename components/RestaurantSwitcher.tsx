@@ -12,7 +12,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -94,9 +101,12 @@ export function RestaurantSwitcher({
       </DropdownMenu>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby="create-restaurant-description">
           <DialogHeader>
             <DialogTitle>Create restaurant</DialogTitle>
+            <DialogDescription id="create-restaurant-description">
+              Give your restaurant a name so you can track its daily performance.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Label htmlFor="restaurant-name">Name</Label>
@@ -126,9 +136,12 @@ export function RestaurantSwitcher({
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby="rename-restaurant-description">
           <DialogHeader>
             <DialogTitle>Rename restaurant</DialogTitle>
+            <DialogDescription id="rename-restaurant-description">
+              Update the restaurant name as it should appear throughout the app.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Label htmlFor="restaurant-rename">Name</Label>
